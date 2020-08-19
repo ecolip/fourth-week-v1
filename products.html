@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+    integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+    integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+    crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+    integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+    crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+    integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+    crossorigin="anonymous"></script>
+  <title>products list</title>
+
+  <style>
+    #addItem {
+      margin-bottom: 30px;
+      background-color: #333;
+      color: white;
+      padding: 0.7rem 1rem;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      transition: background-color 0.2s linear;
+    }
+    #addItem:hover {
+      background-color: #555;
+    }
+    #products .enabledItem {
+      color: gray;
+    }
+    #products .enabledItem.active {
+      color: #4FA846;
+    }
+    .modal-header {
+      background-color: #333;
+    }
+    .page-link:focus {
+      box-shadow: none;
+    }
+    @media (min-width: 576px){
+      .modal-dialog {
+        max-width: 1000px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="products">
+    <div class="container">
+      <h3 class="title text-center mt-4 mb-3">產品列表</h3>
+      <!-- Button trigger modal -->
+      <button type="button" id="addItem" class="d-block ml-auto" data-toggle="modal"
+        data-target="#exampleModal" @click="clear">建立新產品</button>
+      <table class="table">
+        <thead>
+          <tr>
+            <th scope="col">產品名稱</th>
+            <th scope="col">分類</th>
+            <th scope="col">原價</th>
+            <th scope="col">售價</th>
+            <th scope="col">是否啟用</th>
+            <th scope="col">編輯 / 刪除</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(item, key) in list" :key="item.id">
+            <td>{{item.title}}</td>
+            <td>{{item.category}}</td>
+            <td>{{item['origin_price']}}</td>
+            <td>{{item.price}}</td>
+            <td class="enabledItem" :class="{'active':item.enabled==true}" v-if="item.enabled">啟用</td>
+            <td class="enabledItem" v-else>不啟用</td>
+            <td class="py-2">
+              <button type="button" class="btn btn-outline-primary" data-toggle="modal"
+              data-target="#exampleModal" @click="edit(item)" :disabled="loadingBtn === item.id">編輯</button>
+              <button type="button" class="btn btn-outline-danger" @click="remove(item.id)">刪除</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div is="pagination" :pages="pagination" @update="getProducts" @next="getProducts" @previous="getProducts"></div>
+    </div>
+
+    <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+      aria-hidden="true">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content border-0">
+          <div class="modal-header text-white">
+            <h5 class="modal-title" id="exampleModalLabel">新增產品</h5>
+            <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close" @click="clear">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-sm-4">
+                <div class="form-group">
+                  <label for="imageUrl">圖片網址</label>
+                  <input type="text" class="form-control" id="imageUrl" placeholder="請輸入圖片網址" v-model="tempData.imageUrl[0]">
+                </div>
+              </div>
+              <div class="col-sm-8">
+                <div class="form-row">
+                  <div class="form-group col-md-12">
+                    <label for="productTitle">產品名稱</label>
+                    <input type="text" class="form-control" id="productTitle" placeholder="請輸入產品名稱" v-model="tempData.title">
+                  </div>
+                  <div class="form-group col-md-6">
+                    <label for="category">分類</label>
+                    <input type="text" class="form-control" id="category" placeholder="請輸入分類" v-model="tempData.category">
+                  </div>
+                  <div class="form-group col-md-6">
+                    <label for="unit">單位</label>
+                    <input type="text" class="form-control" id="unit" placeholder="請輸入單位" v-model="tempData.unit">
+                  </div>
+                  <div class="form-group col-md-6">
+                    <label for="oriPrice">原價</label>
+                    <input type="text" class="form-control" id="oriPrice" placeholder="請輸入原價" v-model="tempData['origin_price']">
+                  </div>
+                  <div class="form-group col-md-6">
+                    <label for="price">售價</label>
+                    <input type="text" class="form-control" id="price" placeholder="請輸入售價" v-model="tempData.price">
+                  </div>
+
+                  <hr class="w-100">
+
+                  <div class="form-group col-md-12">
+                    <label for="description">產品描述</label>
+                    <textarea name="" id="description" class="form-control" rows="3" placeholder="請輸入產品描述" v-model="tempData.description"></textarea>
+                  </div>
+                  <div class="form-group col-md-12">
+                    <label for="productContent">產品說明</label>
+                    <textarea name="" id="productContent" class="form-control" rows="3" placeholder="請輸入產品說明" v-model="tempData.content"></textarea>
+                  </div>
+                  <div class="form-group">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="checkOpen" v-model="tempData.enabled">
+                      <label class="form-check-label" for="checkOpen">是否啟用</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal" @click="clear">取消</button>
+            <button type="button" class="btn btn-primary" data-dismiss="modal" aria-label="Close" @click="updateData">確認送出</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="js/all.js" type="module"></script>
+
+</body>
+
+</html>
